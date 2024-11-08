@@ -1,29 +1,33 @@
 pipeline {
     agent any
+
     stages {
-        stage('Build') {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: 'https://github.com/rajisri2609/python-app.git'
+            }
+        }
+        stage('Build Docker Image') {
             steps {
                 script {
-                    // Use 'start' for Windows to run the process in the background
-                    bat 'start docker build -t myapp .'
+                    docker.build('my-python-app:latest')
                 }
             }
         }
         stage('Run Tests') {
             steps {
                 script {
-                    // Running tests without 'nohup' for Windows
-                    bat 'docker run myapp mvn test'
+                    docker.image('my-python-app:latest').inside {
+                        sh 'python -m unittest discover -s tests'
+                    }
                 }
             }
         }
-        stage('Deploy') {
-            steps {
-                script {
-                    // Running the deploy process without 'nohup' for Windows
-                    bat 'start docker run -d -p 8080:8080 myapp'
-                }
-            }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
