@@ -10,7 +10,6 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image with the tag "my-python-app:latest"
                     docker.build('my-python-app:latest')
                 }
             }
@@ -18,12 +17,12 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Define the working directory
+                    // Ensure path compatibility with Windows
                     def workDir = "C:/ProgramData/Jenkins/.jenkins/workspace/python-pipeline/"
-                    
-                    // Use docker.image().inside() to run the tests inside the container
-                    docker.image('my-python-app:latest').inside("-v ${workDir}:${workDir} -w ${workDir}") {
-                        // Run tests inside the container using bat (for Windows)
+                    def dockerContainer = docker.run("-v ${workDir}:${workDir} -w ${workDir} my-python-app:latest")
+
+                    // Execute test command inside the container
+                    dockerContainer.inside {
                         bat 'python -m unittest discover -s tests'
                     }
                 }
