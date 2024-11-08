@@ -1,56 +1,30 @@
 pipeline {
     agent any
 
-    environment {
-        // Define environment variables for your application
-        IMAGE_NAME = 'myapp'
-        CONTAINER_NAME = 'myapp-container'
-    }
-
     stages {
-        stage('Build') {
+        stage('Clone Repository') {
+            steps {
+                git credentialsId: 'ef909081-f111-445a-b5e3-0eebea4e8d82', branch: 'main', url: 'https://github.com/rajisri2609/python-app.git'
+            }
+        }
+        stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
-                    echo "Building Docker image: ${IMAGE_NAME}"
-                    sh 'docker build -t ${IMAGE_NAME} .'
+                    docker.build('my-python-app:latest')
                 }
             }
         }
-
         stage('Run Tests') {
             steps {
                 script {
-                    // Run tests using Maven inside a Docker container
-                    echo "Running tests inside the Docker container"
-                    sh 'docker run --rm ${IMAGE_NAME} mvn test'
-                }
-            }
-        }
+                    // Ensure path compatibility with Windows
+                    def workDir = "C:/ProgramData/Jenkins/.jenkins/workspace/python-pipeline/"
+                    def dockerContainer = docker.run("-v ${workDir}:${workDir} -w ${workDir} my-python-app:latest")
 
-        stage('Deploy') {
-            steps {
-                script {
-                    // Stop and remove any existing containers with the same name
-                    echo "Stopping and removing existing container if any"
-                    sh '''
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
-                    '''
-
-                    // Run the application in a new container
-                    echo "Deploying the app to Docker container"
-                    sh 'docker run -d -p 8080:8080 --name ${CONTAINER_NAME} ${IMAGE_NAME}'
-                }
-            }
-        }
-
-        stage('Clean Up') {
-            steps {
-                script {
-                    // Optionally clean up unused Docker images and containers
-                    echo "Cleaning up unused Docker images and containers"
-                    sh 'docker system prune -f'
+                    // Execute test command inside the container
+                    dockerContainer.inside {
+                        bat 'python -m unittest discover -s tests'
+                    }
                 }
             }
         }
@@ -58,9 +32,7 @@ pipeline {
 
     post {
         always {
-            // Cleanup the environment if necessary
-            echo "Pipeline complete. Cleaning up."
-            cleanWs() // Clean workspace
+            cleanWs() // Cleans workspace after each build
         }
     }
 }
