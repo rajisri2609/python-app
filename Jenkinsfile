@@ -1,17 +1,12 @@
 pipeline {
     agent any
 
-    environment {
-        WORKDIR = "C:/ProgramData/Jenkins/.jenkins/workspace/python-pipeline/"
-    }
-
     stages {
         stage('Clone Repository') {
             steps {
                 git credentialsId: 'ef909081-f111-445a-b5e3-0eebea4e8d82', branch: 'main', url: 'https://github.com/rajisri2609/python-app.git'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -20,14 +15,15 @@ pipeline {
                 }
             }
         }
-
         stage('Run Tests') {
             steps {
                 script {
-                    // Use docker.inside() to run tests inside the container
-                    // Correct the path format for Windows systems
-                    docker.image('my-python-app:latest').inside("-v ${WORKDIR}:${WORKDIR} -w ${WORKDIR}") {
-                        // Run tests inside the container using unittest
+                    // Define the working directory
+                    def workDir = "C:/ProgramData/Jenkins/.jenkins/workspace/python-pipeline/"
+                    
+                    // Use docker.image().inside() to run the tests inside the container
+                    docker.image('my-python-app:latest').inside("-v ${workDir}:${workDir} -w ${workDir}") {
+                        // Run tests inside the container using bat (for Windows)
                         bat 'python -m unittest discover -s tests'
                     }
                 }
